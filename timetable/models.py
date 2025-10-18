@@ -69,9 +69,6 @@ DAY_CHOICES = [
     ('wed', 'Wednesday'),
     ('thu', 'Thursday'),
     ('fri', 'Friday'),
-
-    ('sat', 'Saturday'),
-    ('sun', 'Sunday')
 ]
 
 GROUP_CHOICES = [

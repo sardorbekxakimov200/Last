@@ -33,8 +33,6 @@ WEEKDAY_TO_CODE = {
     2: 'wed',
     3: 'thu',
     4: 'fri',
-    5: 'sat',
-    6: 'sun',
 }
 
 
@@ -45,73 +43,6 @@ def get_current_session(now_time):
             return i
     return None
 
-
-# def pupil_now(request):     
-#     """
-#     q= pupil name
-#     works even on weekends
-#     """
-#     q = request.GET.get('q', '').strip()
-#     results = []
-#     message = ''
-#     now = timezone.localtime(timezone.now())
-#     weekday = now.weekday()  # 0..6
-#     day_code = WEEKDAY_TO_CODE.get(weekday)  # always defined now
-
-#     current_session = get_current_session(now.time())
-
-#     if current_session is None:
-#         message = f"No lesson right now. Current time {now.time().strftime('%H:%M')} is outside defined session ranges."
-#     else:
-#         if q:
-#             pupils = Pupil.objects.filter(
-#                 Q(first_name__icontains=q) |
-#                 Q(last_name__icontains=q) |
-#                 Q(first_name__icontains=q.split(' ')[0]) |
-#                 Q(last_name__icontains=q.split(' ')[-1])
-#             ).select_related('school_class')[:50]
-
-#             if not pupils.exists():
-#                 message = "No pupils found for that search."
-#             else:
-#                 for pupil in pupils:
-#                     entries = TimeEntry.objects.filter(
-#                         day=day_code,
-#                         session=current_session,
-#                         school_class=pupil.school_class
-#                     ).select_related('subject', 'teacher').order_by('group')
-
-#                     formatted = []
-#                     for e in entries:
-#                         start, end = (
-#                             e.start_time or e.computed_start_end[0],
-#                             e.end_time or e.computed_start_end[1],
-#                         )
-#                         formatted.append({
-#                             'subject': str(e.subject),
-#                             'teacher': str(e.teacher),
-#                             'group': e.get_group_display(),
-#                             'start': start.strftime("%H:%M") if start else '',
-#                             'end': end.strftime("%H:%M") if end else '',
-#                         })
-
-#                     results.append({
-#                         'pupil': f"{pupil.first_name} {pupil.last_name}",
-#                         'class': str(pupil.school_class),
-#                         'entries': formatted,
-#                     })
-#         else:
-#             message = "Enter a pupil's first or last name to search."
-
-#     context = {
-#         'query': q,
-#         'now': now,
-#         'day_code': day_code,
-#         'session': current_session,
-#         'results': results,
-#         'message': message,
-#     }
-#     return render(request, 'timetable/pupil_results.html', context)
 
 def pupil_now(request):     
     """

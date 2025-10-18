@@ -1,48 +1,353 @@
-{% extends "timetable/base_pupil.html" %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Pupil Lesson Finder</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;500;700&display=swap');
 
-{% block title %}Pupil Lesson Results{% endblock %}
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      padding: 24px;
+      margin: 0;
+      background: linear-gradient(145deg, #0d0d0d 0%, #1a1a1a 100%);
+      color: #e0e0e0;
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
 
-{% block content %}
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+    }
 
-  {% if message %}
-    <div class="card"><p class="no-data">{{ message }}</p></div>
-  {% endif %}
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: #ffffff;
+      text-shadow: 0 0 8px rgba(100, 150, 255, 0.5);
+      margin-bottom: 16px;
+      text-align: center;
+    }
 
+    .muted {
+      color: #b0b0b0;
+      font-size: 0.9rem;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(100, 150, 255, 0.2);
+      border: 1px solid rgba(100, 150, 255, 0.5);
+      margin-left: 8px;
+      font-weight: 600;
+      color: #ffffff;
+    }
+
+    .datetime {
+      color: #b0b0b0;
+      font-size: 0.9rem;
+      text-align: center;
+      margin-bottom: 16px;
+      text-shadow: 0 0 5px rgba(100, 150, 255, 0.3);
+    }
+
+    .search {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    input[type=text] {
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 1px solid rgba(100, 150, 255, 0.4);
+      flex: 1;
+      background: rgba(20, 20, 20, 0.85);
+      color: #e0e0e0;
+      font-size: 1rem;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    input[type=text]:focus {
+      outline: none;
+      border-color: rgba(100, 150, 255, 0.8);
+      box-shadow: 0 0 10px rgba(100, 150, 255, 0.5);
+    }
+
+    button {
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 0;
+      background: #64c8ff;
+      color: #fff;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    button:hover {
+      background: #3ba3ff;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(100, 150, 255, 0.5);
+    }
+
+    .results-table {
+      width: 100%;
+      max-width: 1000px;
+      margin: 0 auto;
+      border-collapse: collapse;
+      background: rgba(20, 20, 20, 0.85);
+      backdrop-filter: blur(12px);
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .results-table th, .results-table td {
+      text-align: left;
+      padding: 12px;
+      border-bottom: 1px solid rgba(100, 150, 255, 0.2);
+      color: #e0e0e0;
+    }
+
+    .results-table th {
+      font-weight: 700;
+      background: rgba(100, 150, 255, 0.1);
+      text-shadow: 0 0 5px rgba(100, 150, 255, 0.3);
+    }
+
+    .results-table tr {
+      transition: background 0.3s ease, transform 0.3s ease;
+    }
+
+    .results-table tr:hover {
+      background: rgba(100, 150, 255, 0.1);
+      transform: translateY(-2px);
+    }
+
+    .results-table .no-data {
+      color: #b0b0b0;
+      font-style: italic;
+      text-align: center;
+      padding: 24px;
+    }
+
+    .results-table .pupil-header {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #ffffff;
+      text-shadow: 0 0 5px rgba(100, 150, 255, 0.3);
+    }
+
+    .results-table .class-info {
+      color: #b0b0b0;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+  <h1>Pupil Lesson Finder</h1>
+  <p class="datetime">Today's date and time is 01:24 PM +05 on Saturday, October 18, 2025</p>
+  <p class="muted" id="time-session-display">
+  Local time: <strong id="live-time">{{ now|date:"H:i" }}</strong>
+  · Session: <span id="live-session" class="pill">#{{ session|default:"–" }}</span>
+</p>
+
+<script>
+  function computeSession(date) {
+    const sessions = [
+      ["08:30", "09:15"],
+      ["09:20", "10:05"],
+      ["10:10", "10:55"],
+      ["11:00", "11:45"],
+      ["12:30", "13:15"],
+      ["13:20", "14:05"],
+      ["14:10", "14:55"],
+      ["15:00", "15:45"],
+    ];
+
+    const timeStr = date.toTimeString().slice(0,5); // "HH:MM"
+    const [hour, minute] = timeStr.split(":").map(Number);
+    const current = hour * 60 + minute;
+
+    for (let i = 0; i < sessions.length; i++) {
+      const [start, end] = sessions[i];
+      const [sh, sm] = start.split(":").map(Number);
+      const [eh, em] = end.split(":").map(Number);
+      const startMin = sh * 60 + sm;
+      const endMin = eh * 60 + em;
+      if (current >= startMin && current < endMin) {
+        return i + 1;
+      }
+    }
+    return null; // outside lesson times
+  }
+
+  function updateTimeAndSession() {
+    const now = new Date();
+    const timeElem = document.getElementById("live-time");
+    const sessionElem = document.getElementById("live-session");
+
+    // live time (HH:MM)
+    const hh = now.getHours().toString().padStart(2, "0");
+    const mm = now.getMinutes().toString().padStart(2, "0");
+    timeElem.textContent = `${hh}:${mm}`;
+
+    // compute session
+    const session = computeSession(now);
+    if (session) {
+      sessionElem.textContent = `#${session}`;
+    } else {
+      sessionElem.textContent = "– (no lessons)";
+    }
+  }
+
+  updateTimeAndSession();
+  setInterval(updateTimeAndSession, 1000);
+</script>
+
+
+  <form method="get" class="search" action="{% url 'timetable:pupil_now' %}">
+    <input type="text" name="q" placeholder="Pupil first or last name" value="{{ query|default:'' }}" />
+    <button type="submit">Search</button>
+  </form>
+
+  
+
+  {% if results %}
+    <table class="results-table">
+      <thead>
+        <tr>
+          <th>Pupil</th>
+          <th>Class</th>
+          <th>Subject</th>
+          <th>Teacher</th>
+          <th>Group</th>
+          <th>Time</th>
+        </tr>
+      </thead>
+      <tbody>
   {% for row in results %}
-    <div class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center">
-        <div>
-          <strong style="font-size:1.05rem">{{ row.pupil }}</strong>
-          <div class="muted">Class: {{ row.class }}</div>
-        </div>
-      </div>
-
-      {% if row.entries %}
-        <table>
-          <thead>
-            <tr>
-              <th>Subject</th><th>Teacher</th><th>Group</th><th>Time</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for e in row.entries %}
-              <tr>
-                <td>{{ e.subject }}</td>
-                <td>{{ e.teacher }}</td>
-                <td>{{ e.group }}</td>
-                <td>{{ e.start }} — {{ e.end }}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      {% else %}
-        <p class="no-data">No lessons scheduled for this class right now.</p>
-      {% endif %}
-    </div>
+    {% if row.entries %}
+      {% for e in row.entries %}
+        <tr>
+          {% if forloop.first %}
+            <td class="pupil-header">{{ row.pupil }}</td>
+            <td class="class-info">Class: {{ row.class }}</td>
+          {% else %}
+            <td></td>
+            <td></td>
+          {% endif %}
+          <td>{{ e.subject }}</td>
+          <td>{{ e.teacher }}</td>
+          <td>{{ e.group }}</td>
+          <td>{{ e.start }} — {{ e.end }}</td>
+        </tr>
+      {% endfor %}
+    {% else %}
+      <tr>
+        <td class="pupil-header">{{ row.pupil }}</td>
+        <td class="class-info">Class: {{ row.class }}</td>
+        <td colspan="4" class="no-data">
+          Pupils with these names are not in lessons right now.
+        </td>
+      </tr>
+    {% endif %}
   {% endfor %}
+</tbody>
+
+    </table>
+  {% else %}
+  {% if message %}
+    {% if not message == 'SPECIAL-CASE' %}
+    <table class="results-table">
+      <tr><td class="no-data">{{ message }}</td></tr>
+    </table>
+    {% endif %}
+  {% endif %}
+  {% endif %}
 
   {% if not results and not message %}
     <p class="muted">No search yet.</p>
   {% endif %}
 
-{% endblock %}
+  <script>
+    const canvas = document.getElementById('bgCanvas');
+    const ctx = canvas.getContext('2d');
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const particles = [];
+    const particleCount = 100;
+
+    class Particle {
+      constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.size = Math.random() * 3 + 1;
+        this.speedX = Math.random() * 0.5 - 0.25;
+        this.speedY = Math.random() * 0.5 - 0.25;
+        this.opacity = Math.random() * 0.5 + 0.1;
+      }
+
+      update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+        this.opacity += Math.random() * 0.02 - 0.01;
+
+        if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+        if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+        if (this.opacity < 0.1) this.opacity = 0.1;
+        if (this.opacity > 0.6) this.opacity = 0.6;
+      }
+
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(100, 150, 255, ${this.opacity})`;
+        ctx.fill();
+      }
+    }
+
+    function init() {
+      for (let i = 0; i < particleCount; i++) {
+        particles.push(new Particle());
+      }
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(particle => {
+        particle.update();
+        particle.draw();
+      });
+      requestAnimationFrame(animate);
+    }
+
+    init();
+    animate();
+
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
+  </script>
+</body>
+</html>

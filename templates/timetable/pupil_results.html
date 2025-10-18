@@ -1,0 +1,48 @@
+{% extends "timetable/base_pupil.html" %}
+
+{% block title %}Pupil Lesson Results{% endblock %}
+
+{% block content %}
+
+  {% if message %}
+    <div class="card"><p class="no-data">{{ message }}</p></div>
+  {% endif %}
+
+  {% for row in results %}
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center">
+        <div>
+          <strong style="font-size:1.05rem">{{ row.pupil }}</strong>
+          <div class="muted">Class: {{ row.class }}</div>
+        </div>
+      </div>
+
+      {% if row.entries %}
+        <table>
+          <thead>
+            <tr>
+              <th>Subject</th><th>Teacher</th><th>Group</th><th>Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for e in row.entries %}
+              <tr>
+                <td>{{ e.subject }}</td>
+                <td>{{ e.teacher }}</td>
+                <td>{{ e.group }}</td>
+                <td>{{ e.start }} — {{ e.end }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="no-data">No lessons scheduled for this class right now.</p>
+      {% endif %}
+    </div>
+  {% endfor %}
+
+  {% if not results and not message %}
+    <p class="muted">No search yet.</p>
+  {% endif %}
+
+{% endblock %}

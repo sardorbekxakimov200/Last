@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Timetable Simulator</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 700px;
+            margin: 40px auto;
+            line-height: 1.6;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: #f8f8f8;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        select, input, button {
+            padding: 8px;
+            font-size: 16px;
+        }
+        button {
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        .results {
+            margin-top: 25px;
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Timetable Simulator</h2>
+
+    <form method="post">
+        {% csrf_token %}
+        <label>Day:</label>
+        <select name="day" required>
+            <option value="">Select day</option>
+            <option value="mon">Monday</option>
+            <option value="tue">Tuesday</option>
+            <option value="wed">Wednesday</option>
+            <option value="thu">Thursday</option>
+            <option value="fri">Friday</option>
+        </select>
+
+        <label>Time (HH:MM):</label>
+        <input type="time" name="time" required>
+
+        <label>Class:</label>
+        <select name="class_id" required>
+            <option value="{{ c.id }}">Select class</option>
+            {% for c in classes %}
+                <option value="{{ c.id }}">{{c.number}}{{ c.letter }}</option>
+            {% endfor %}
+        </select>
+
+        <button type="submit">Check Lessons</button>
+    </form>
+
+    {% if selected_class %}
+    <div class="results">
+        <h3>Results for {{ selected_class.name }} at {{ selected_day|title }} {{ selected_time }}</h3>
+        {% if entries %}
+            <ul>
+                {% for e in entries %}
+                    <li>
+                        <strong>{{ e.subject.name }}</strong> — {{ e.teacher.first_name }} {{ e.teacher.last_name }}
+                        ({{ e.start_time }}–{{ e.end_time }})
+                        {% if e.group != 'all' %} | Group {{ e.group }}{% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No lessons found at this time.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+</body>
+</html>

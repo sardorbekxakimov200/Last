@@ -124,9 +124,7 @@ def pupil_now(request):
 
 
 
-
-
-
+# ---- Second part ----
 
 from django.shortcuts import render
 from datetime import datetime
@@ -152,10 +150,11 @@ def timetable_simulator(request):
             fake_date = datetime.strptime("2025-10-13", "%Y-%m-%d")  # Monday
             hour, minute = map(int, selected_time.split(":"))
             now = fake_date.replace(hour=hour, minute=minute)
+            # --- subtle logical error here ---
             entries = TimetableEntry.objects.filter(
                 day=selected_day,
                 school_class=selected_class,
-                start_time__lte=now.time(),
+                start_time__lt=now.time(),      # should be __lte
                 end_time__gte=now.time(),
             )
 
